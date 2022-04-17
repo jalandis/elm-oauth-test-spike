@@ -10,7 +10,7 @@ module Main exposing
 import Browser
 import Browser.Navigation
 import Effects
-import Html exposing (Attribute, Html, a, div, li, span, text, ul)
+import Html exposing (Attribute, Html, li, span, text, ul)
 import Html.Attributes exposing (attribute, href, style)
 import Html.Events exposing (onClick)
 import Platform.Sub exposing (Sub)
@@ -34,8 +34,13 @@ main =
                 update msg model
                     |> Tuple.mapSecond (Effects.toCmd model.key)
         , subscriptions = subscriptions
-        , onUrlChange = OnUrlChange
-        , onUrlRequest = OnUrlRequest
+
+        -- What is the difference between these 2?
+        --
+        -- Handling with onClick is easier to test
+        -- Are there unexpected issues with this choice beside the duplicate messages?
+        , onUrlChange = always NoMsg
+        , onUrlRequest = always NoMsg
         }
 
 
@@ -60,23 +65,23 @@ init _ url key =
 
 
 type Msg
-    = OnUrlChange Url.Url
+    = NoMsg
     | OnUrlRequest Browser.UrlRequest
 
 
 update : Msg -> Model key -> ( Model key, Effects.Effects Msg )
 update msg model =
     case msg of
+        NoMsg ->
+            ( model, [] )
+
         OnUrlRequest urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
-                    ( model, [ Effects.InternalLinkClicked url ] )
+                    ( { model | url = url }, [ Effects.InternalLinkClicked url ] )
 
                 Browser.External href ->
                     ( model, [ Effects.ExternalLinkClicked href ] )
-
-        OnUrlChange url ->
-            ( { model | url = url }, [] )
 
 
 
@@ -117,15 +122,16 @@ view model =
 
 
 viewExternalLink : String -> String -> Html Msg
-viewExternalLink testAttr href =
+viewExternalLink testAttr url =
     li []
         [ a
-            [ Browser.External href
+            [ Browser.External url
                 |> OnUrlRequest
                 |> onClick
             , testAttribute testAttr
+            , href url
             ]
-            [ text href ]
+            [ text url ]
         ]
 
 

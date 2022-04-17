@@ -23,7 +23,8 @@
             "thematthopkins/elm-test-journey": "4.1.0"
         },
         "indirect": {
-            "elm/random": "1.0.0"
+            "elm/random": "1.0.0",
+            "elm-explorations/test": "1.2.2"
         }
     }
 }

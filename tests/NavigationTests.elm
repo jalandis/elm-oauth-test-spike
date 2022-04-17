@@ -1,6 +1,5 @@
 module NavigationTests exposing (all)
 
-import Browser
 import Effects
 import Expect
 import HomePage exposing (page)
