@@ -4,7 +4,9 @@ module Effects exposing
     , toCmd
     )
 
+import Api
 import Browser.Navigation
+import Http
 import Url
 
 
@@ -15,6 +17,7 @@ type alias Effects msg =
 type Effect msg
     = InternalLinkClicked Url.Url
     | ExternalLinkClicked String
+    | Login (Result Http.Error Api.LoginResponse -> msg) Api.LoginRequest
 
 
 
@@ -28,6 +31,8 @@ type Effect msg
 --             InternalLinkClicked args
 --         ExternalLinkClicked args ->
 --             ExternalLinkClicked args
+--         Login m args ->
+--            EffectRemoveAccountAccess (m >> fn) args
 
 
 toCmd :
@@ -45,8 +50,11 @@ effectToCmd :
     -> Cmd msg
 effectToCmd key effect =
     case effect of
-        InternalLinkClicked url ->
-            Browser.Navigation.pushUrl key (Url.toString url)
+        InternalLinkClicked args ->
+            Browser.Navigation.pushUrl key (Url.toString args)
 
-        ExternalLinkClicked href ->
-            Browser.Navigation.load href
+        ExternalLinkClicked args ->
+            Browser.Navigation.load args
+
+        Login m args ->
+            Api.loginPost m args

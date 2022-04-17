@@ -1,18 +1,21 @@
 module Main exposing
     ( Model
     , Msg(..)
+    , User(..)
     , main
     , profileLink
     , update
     , view
     )
 
+import Api
 import Browser
 import Browser.Navigation
 import Effects
-import Html exposing (Attribute, Html, a, li, span, text, ul)
-import Html.Attributes exposing (attribute, href, style)
-import Html.Events exposing (onClick)
+import Html exposing (Attribute, Html, a, button, div, input, label, li, span, text, ul)
+import Html.Attributes exposing (attribute, for, href, id, style, type_, value)
+import Html.Events exposing (onClick, onInput)
+import Http
 import Platform.Sub exposing (Sub)
 import Url
 
@@ -52,12 +55,29 @@ type alias Model key =
     -- Abstract Browser.Navigation.Key is needed for testing
     { key : key
     , url : Url.Url
+    , user : User
+    }
+
+
+type User
+    = Anonymous LoginModel
+    | AuthenitcatedUser Api.LoginResponse
+
+
+type alias LoginModel =
+    { username : Maybe String
+    , password : Maybe String
     }
 
 
 init : () -> Url.Url -> key -> ( Model key, Effects.Effects Msg )
 init _ url key =
-    ( Model key url, [] )
+    ( { key = key
+      , url = url
+      , user = Anonymous { username = Nothing, password = Nothing }
+      }
+    , []
+    )
 
 
 
@@ -67,6 +87,9 @@ init _ url key =
 type Msg
     = NoMsg
     | OnUrlRequest Browser.UrlRequest
+    | UpdateLoginForm (LoginModel -> LoginModel)
+    | HandleLoginRequest
+    | HandleLoginResponse (Result Http.Error Api.LoginResponse)
 
 
 update : Msg -> Model key -> ( Model key, Effects.Effects Msg )
@@ -82,6 +105,39 @@ update msg model =
 
                 Browser.External href ->
                     ( model, [ Effects.ExternalLinkClicked href ] )
+
+        UpdateLoginForm fn ->
+            case model.user of
+                Anonymous loginForm ->
+                    ( { model | user = fn loginForm |> Anonymous }, [] )
+
+                _ ->
+                    -- TODO: Show errors
+                    ( model, [] )
+
+        HandleLoginRequest ->
+            case model.user of
+                Anonymous loginForm ->
+                    ( model
+                    , [ Effects.Login HandleLoginResponse
+                            { username = Maybe.withDefault "" loginForm.username
+                            , password = Maybe.withDefault "" loginForm.password
+                            }
+                      ]
+                    )
+
+                _ ->
+                    -- TODO: Show errors
+                    ( model, [] )
+
+        HandleLoginResponse rawResult ->
+            case rawResult of
+                Ok loginResponse ->
+                    ( { model | user = AuthenitcatedUser loginResponse }, [] )
+
+                Err _ ->
+                    -- TODO: Show errors
+                    ( model, [] )
 
 
 
@@ -117,8 +173,56 @@ view model =
             , viewInternalLink "profile-link" (profileLink model)
             , viewExternalLink "external-link" "https://google.com"
             ]
+        , case model.user of
+            Anonymous loginForm ->
+                div []
+                    [ text "Login Required"
+                    , div []
+                        [ label [ for "username" ] [ text "Username:" ]
+                        , input
+                            [ id "username"
+                            , Maybe.withDefault "" loginForm.username |> value
+                            , onInput
+                                (\username ->
+                                    (\m -> { m | username = stringToMaybe username })
+                                        |> UpdateLoginForm
+                                )
+                            ]
+                            []
+                        ]
+                    , div []
+                        [ label [ for "password" ] [ text "Password:" ]
+                        , input
+                            [ id "password"
+                            , Maybe.withDefault "" loginForm.password |> value
+                            , type_ "password"
+                            , onInput
+                                (\password ->
+                                    (\m -> { m | password = stringToMaybe password })
+                                        |> UpdateLoginForm
+                                )
+                            ]
+                            []
+                        ]
+                    , button [ onClick HandleLoginRequest ] [ text "Login" ]
+                    ]
+
+            AuthenitcatedUser loginResponse ->
+                div []
+                    [ div [] [ text "Login Succeeded" ]
+                    , div [] [ text loginResponse.accessToken ]
+                    ]
         ]
     }
+
+
+stringToMaybe : String -> Maybe String
+stringToMaybe s =
+    if s == "" then
+        Nothing
+
+    else
+        Just s
 
 
 viewExternalLink : String -> String -> Html Msg

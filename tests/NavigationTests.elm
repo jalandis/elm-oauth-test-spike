@@ -20,6 +20,7 @@ initModel =
         , query = Nothing
         , fragment = Nothing
         }
+    , user = Main.Anonymous { username = Nothing, password = Nothing }
     }
 
 
