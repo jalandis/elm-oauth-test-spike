@@ -10,7 +10,7 @@ module Main exposing
 import Browser
 import Browser.Navigation
 import Effects
-import Html exposing (Attribute, Html, li, span, text, ul)
+import Html exposing (Attribute, Html, a, li, span, text, ul)
 import Html.Attributes exposing (attribute, href, style)
 import Html.Events exposing (onClick)
 import Platform.Sub exposing (Sub)
