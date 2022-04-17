@@ -1,0 +1,8 @@
+{
+    "git.ignoreLimitWarning": true,
+    "elm.analyseEnabled": true,
+    "elm.maxWorkspaceFilesUsedBySymbols": 500,
+    "[elm]": {
+      "editor.formatOnSave": true
+    }
+  }
