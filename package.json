@@ -1,0 +1,20 @@
+{
+  "name": "elm-oauth-test-spike",
+  "version": "0.0.1",
+  "description": "Experiment with Elm application and OAuth2",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx parcel index.html",
+    "test": "npx elm-test-rs",
+    "postinstall": "elm-tooling install"
+  },
+  "author": "John Landis <jalandis@gmail.com>",
+  "devDependencies": {
+    "@parcel/transformer-elm": "^2.4.1",
+    "elm": "^0.19.1-5",
+    "elm-analyse": "0.16.5",
+    "elm-review": "2.7.0",
+    "elm-tooling": "1.7.0",
+    "parcel": "^2.4.1"
+  }
+}
