@@ -8,6 +8,7 @@ module Effects exposing
 import Api
 import Browser.Navigation
 import Http
+import Ports
 import Url
 
 
@@ -19,6 +20,7 @@ type Effect msg
     = InternalLinkClicked Url.Url
     | ExternalLinkClicked String
     | Login (Result Http.Error Api.LoginResponse -> msg) Api.LoginRequest
+    | SetLocaleStorageItem Ports.LocalStorageRecord
 
 
 map : (a -> msg) -> Effects a -> Effects msg
@@ -37,6 +39,9 @@ mapEffect fn effect =
 
         Login m args ->
             Login (m >> fn) args
+
+        SetLocaleStorageItem args ->
+            SetLocaleStorageItem args
 
 
 toCmd :
@@ -62,3 +67,6 @@ effectToCmd key effect =
 
         Login m args ->
             Api.loginPost m args
+
+        SetLocaleStorageItem args ->
+            Ports.setLocalStorageItem args

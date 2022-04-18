@@ -1,3 +1,7 @@
-import { Elm } from "./src/Main.elm";
+import { Elm } from './src/Main.elm';
 
-Elm.Main.init({});
+const app = Elm.Main.init({});
+
+app.ports.setLocalStorageItem.subscribe(function(data) {
+  localStorage.setItem(data.key, data.value);
+});

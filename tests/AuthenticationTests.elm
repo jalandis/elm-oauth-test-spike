@@ -1,8 +1,10 @@
 module AuthenticationTests exposing (all)
 
+import Api
 import Effects
 import Expect
 import HomePage exposing (page)
+import Json.Encode
 import Main
 import Test exposing (Test, describe, test)
 import TestJourney as J
@@ -53,6 +55,30 @@ all =
                                                 , refreshToken = "refresh-token"
                                                 }
                                             )
+                                        )
+
+                                _ ->
+                                    J.EffectUnexpected
+                        )
+                    |> J.handleEffect
+                        (\effect ->
+                            case effect of
+                                Effects.SetLocaleStorageItem args ->
+                                    J.EffectSeen
+                                        (Expect.equal
+                                            { key = "elm-oauth-test-spike"
+                                            , value =
+                                                -- TODO: Deduplicate this code
+                                                Json.Encode.encode 0
+                                                    (Api.loginResponseEncoder
+                                                        { accessToken = "access-token"
+                                                        , tokenType = "token"
+                                                        , expiresIn = 120
+                                                        , refreshToken = "refresh-token"
+                                                        }
+                                                    )
+                                            }
+                                            args
                                         )
 
                                 _ ->

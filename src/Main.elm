@@ -16,6 +16,7 @@ import Html exposing (Attribute, Html, a, button, div, input, label, li, span, t
 import Html.Attributes exposing (attribute, for, href, id, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
+import Json.Encode
 import Platform.Sub exposing (Sub)
 import Url
 
@@ -120,7 +121,13 @@ loginUpdate msg loginModel model =
         HandleLoginResponse rawResult ->
             case rawResult of
                 Ok loginResponse ->
-                    ( { model | user = AuthenitcatedUser loginResponse }, [] )
+                    ( { model | user = AuthenitcatedUser loginResponse }
+                    , [ Effects.SetLocaleStorageItem
+                            { key = "elm-oauth-test-spike"
+                            , value = Json.Encode.encode 0 (Api.loginResponseEncoder loginResponse)
+                            }
+                      ]
+                    )
 
                 Err err ->
                     ( { model | error = Just (httpErrorToString err) }, [] )

@@ -73,6 +73,17 @@ loginResponseDecoder =
                 |> required "refresh_token" Json.Decode.string ""
 
 
+loginResponseEncoder : LoginResponse -> Json.Encode.Value
+loginResponseEncoder v =
+    Json.Encode.object <|
+        List.filterMap identity <|
+            [ requiredFieldEncoder "access_token" Json.Encode.string "" v.accessToken
+            , requiredFieldEncoder "token_type" Json.Encode.string "" v.tokenType
+            , requiredFieldEncoder "expires_in" Json.Encode.int 0 v.expiresIn
+            , requiredFieldEncoder "refresh_token" Json.Encode.string "" v.refreshToken
+            ]
+
+
 required : String -> Json.Decode.Decoder a -> a -> Json.Decode.Decoder (a -> b) -> Json.Decode.Decoder b
 required name decoder default d =
     Json.Decode.map2 (|>) (withDefault default <| Json.Decode.field name decoder) d
