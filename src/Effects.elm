@@ -1,6 +1,7 @@
 module Effects exposing
     ( Effect(..)
     , Effects
+    , map
     , toCmd
     )
 
@@ -20,19 +21,22 @@ type Effect msg
     | Login (Result Http.Error Api.LoginResponse -> msg) Api.LoginRequest
 
 
+map : (a -> msg) -> Effects a -> Effects msg
+map fn =
+    List.map (mapEffect fn)
 
--- map : (a -> msg) -> Effects a -> Effects msg
--- map fn =
---     List.map (mapEffect fn)
--- mapEffect : (a -> msg) -> Effect a -> Effect msg
--- mapEffect _ effect =
---     case effect of
---         InternalLinkClicked args ->
---             InternalLinkClicked args
---         ExternalLinkClicked args ->
---             ExternalLinkClicked args
---         Login m args ->
---            EffectRemoveAccountAccess (m >> fn) args
+
+mapEffect : (a -> msg) -> Effect a -> Effect msg
+mapEffect fn effect =
+    case effect of
+        InternalLinkClicked args ->
+            InternalLinkClicked args
+
+        ExternalLinkClicked args ->
+            ExternalLinkClicked args
+
+        Login m args ->
+            Login (m >> fn) args
 
 
 toCmd :

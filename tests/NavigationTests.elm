@@ -6,6 +6,7 @@ import HomePage exposing (page)
 import Main
 import Test exposing (Test, describe, test)
 import TestJourney as J
+import TestSetup
 import Url
 
 
@@ -21,19 +22,8 @@ initModel =
         , fragment = Nothing
         }
     , user = Main.Anonymous { username = Nothing, password = Nothing }
+    , error = Nothing
     }
-
-
-startTest : J.TestState (Main.Model ()) Main.Msg (Effects.Effect Main.Msg)
-startTest =
-    J.startApplication
-        { view = Main.view
-        , update = Main.update
-        , model = initModel
-        , onUrlRequest = Main.OnUrlRequest
-        , onUrlChange = Main.OnUrlChange
-        , effectToString = Debug.toString
-        }
 
 
 all : Test
@@ -41,7 +31,7 @@ all =
     describe "simple navigation tests"
         [ test "follow internal link" <|
             \_ ->
-                startTest
+                TestSetup.startTest initModel
                     |> J.seeText "https://test.com" page.currenturl
                     |> J.click page.profile
                     |> handleInternalNavigation (Main.profileLink initModel)
@@ -65,4 +55,3 @@ handleInternalNavigation expectedUrl t =
                     _ ->
                         J.EffectUnexpected
             )
-        |> J.injectMsg (Main.OnUrlChange expectedUrl)

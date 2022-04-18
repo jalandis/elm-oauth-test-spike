@@ -12,7 +12,6 @@ type alias LoginRequest =
 
 
 type alias LoginResponse =
-    -- TODO: Check these types for correctness
     { accessToken : String
     , tokenType : String
     , expiresIn : Int

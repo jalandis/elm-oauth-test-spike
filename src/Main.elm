@@ -56,6 +56,7 @@ type alias Model key =
     { key : key
     , url : Url.Url
     , user : User
+    , error : Maybe String
     }
 
 
@@ -74,7 +75,12 @@ init : () -> Url.Url -> key -> ( Model key, Effects.Effects Msg )
 init _ url key =
     ( { key = key
       , url = url
-      , user = Anonymous { username = Nothing, password = Nothing }
+      , user =
+            Anonymous
+                { username = Nothing
+                , password = Nothing
+                }
+      , error = Nothing
       }
     , []
     )
@@ -87,9 +93,37 @@ init _ url key =
 type Msg
     = NoMsg
     | OnUrlRequest Browser.UrlRequest
-    | UpdateLoginForm (LoginModel -> LoginModel)
+    | LoginMsg LoginMsg
+
+
+type LoginMsg
+    = UpdateLoginForm (LoginModel -> LoginModel)
     | HandleLoginRequest
     | HandleLoginResponse (Result Http.Error Api.LoginResponse)
+
+
+loginUpdate : LoginMsg -> LoginModel -> Model key -> ( Model key, Effects.Effects LoginMsg )
+loginUpdate msg loginModel model =
+    case msg of
+        UpdateLoginForm fn ->
+            ( { model | user = fn loginModel |> Anonymous }, [] )
+
+        HandleLoginRequest ->
+            ( model
+            , [ Effects.Login HandleLoginResponse
+                    { username = Maybe.withDefault "" loginModel.username
+                    , password = Maybe.withDefault "" loginModel.password
+                    }
+              ]
+            )
+
+        HandleLoginResponse rawResult ->
+            case rawResult of
+                Ok loginResponse ->
+                    ( { model | user = AuthenitcatedUser loginResponse }, [] )
+
+                Err err ->
+                    ( { model | error = Just (httpErrorToString err) }, [] )
 
 
 update : Msg -> Model key -> ( Model key, Effects.Effects Msg )
@@ -106,38 +140,39 @@ update msg model =
                 Browser.External href ->
                     ( model, [ Effects.ExternalLinkClicked href ] )
 
-        UpdateLoginForm fn ->
+        LoginMsg loginMsg ->
             case model.user of
-                Anonymous loginForm ->
-                    ( { model | user = fn loginForm |> Anonymous }, [] )
+                AuthenitcatedUser _ ->
+                    ( { model | error = Just "login message with authenticated session" }, [] )
 
-                _ ->
-                    -- TODO: Show errors
-                    ( model, [] )
+                Anonymous loginModel ->
+                    loginUpdate loginMsg loginModel { model | error = Nothing }
+                        |> Tuple.mapSecond (Effects.map LoginMsg)
 
-        HandleLoginRequest ->
-            case model.user of
-                Anonymous loginForm ->
-                    ( model
-                    , [ Effects.Login HandleLoginResponse
-                            { username = Maybe.withDefault "" loginForm.username
-                            , password = Maybe.withDefault "" loginForm.password
-                            }
-                      ]
-                    )
 
-                _ ->
-                    -- TODO: Show errors
-                    ( model, [] )
+httpErrorToString : Http.Error -> String
+httpErrorToString error =
+    case error of
+        Http.BadUrl url ->
+            "The URL " ++ url ++ " was invalid"
 
-        HandleLoginResponse rawResult ->
-            case rawResult of
-                Ok loginResponse ->
-                    ( { model | user = AuthenitcatedUser loginResponse }, [] )
+        Http.Timeout ->
+            "Unable to reach the server, try again"
 
-                Err _ ->
-                    -- TODO: Show errors
-                    ( model, [] )
+        Http.NetworkError ->
+            "Unable to reach the server, check your network connection"
+
+        Http.BadStatus 500 ->
+            "The server had a problem, try again later"
+
+        Http.BadStatus 400 ->
+            "Verify your information and try again"
+
+        Http.BadStatus status ->
+            "Unknown error : " ++ String.fromInt status
+
+        Http.BadBody errorMessage ->
+            errorMessage
 
 
 
@@ -175,17 +210,19 @@ view model =
             ]
         , case model.user of
             Anonymous loginForm ->
-                div []
+                div [ testAttribute "login-form" ]
                     [ text "Login Required"
                     , div []
                         [ label [ for "username" ] [ text "Username:" ]
                         , input
                             [ id "username"
+                            , testAttribute "username"
                             , Maybe.withDefault "" loginForm.username |> value
                             , onInput
                                 (\username ->
                                     (\m -> { m | username = stringToMaybe username })
                                         |> UpdateLoginForm
+                                        |> LoginMsg
                                 )
                             ]
                             []
@@ -194,24 +231,38 @@ view model =
                         [ label [ for "password" ] [ text "Password:" ]
                         , input
                             [ id "password"
+                            , testAttribute "password"
                             , Maybe.withDefault "" loginForm.password |> value
                             , type_ "password"
                             , onInput
                                 (\password ->
                                     (\m -> { m | password = stringToMaybe password })
                                         |> UpdateLoginForm
+                                        |> LoginMsg
                                 )
                             ]
                             []
                         ]
-                    , button [ onClick HandleLoginRequest ] [ text "Login" ]
+                    , button
+                        [ HandleLoginRequest
+                            |> LoginMsg
+                            |> onClick
+                        , testAttribute "submit"
+                        ]
+                        [ text "Login" ]
                     ]
 
             AuthenitcatedUser loginResponse ->
                 div []
                     [ div [] [ text "Login Succeeded" ]
-                    , div [] [ text loginResponse.accessToken ]
+                    , div [ testAttribute "access-token" ] [ text loginResponse.accessToken ]
                     ]
+        , case model.error of
+            Just err ->
+                div [] [ text ("Error : " ++ err) ]
+
+            Nothing ->
+                text ""
         ]
     }
 
